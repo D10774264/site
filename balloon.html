@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>气球动画</title>
+    <style>
+        div {
+            position: absolute;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        const numBalloons = 10;
+        const balloons = [];
+        for (let i = 0; i < numBalloons; i++) {
+            const balloon = document.createElement('div');
+            balloon.style.width = Math.random() * 80 + 80 + 'px';
+            balloon.style.height = Math.random() * 80 + 80 + 'px';
+            balloon.style.backgroundColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
+            balloon.style.borderRadius = '50%';
+            balloon.style.left = Math.random() * window.innerWidth + 'px';
+            balloon.style.bottom = '0px';
+            document.body.appendChild(balloon);
+            balloons.push(balloon);
+        }
+
+        function update() {
+            for (let i = 0; i < balloons.length; i++) {
+                const balloon = balloons[i];
+                const y = parseInt(window.getComputedStyle(balloon).bottom);
+                balloon.style.bottom = y + 1 + 'px';
+                const size = parseInt(window.getComputedStyle(balloon).width);
+                balloon.style.width = size + (Math.random() - 0.5) * 6 + 'px';
+                balloon.style.height = balloon.style.width;
+                if (parseInt(balloon.style.width) < 50) {
+                    balloon.style.width = '50px';
+                    balloon.style.height = '50px';
+                }
+                if (parseInt(balloon.style.width) > 150) {
+                    balloon.style.width = '150px';
+                    balloon.style.height = '150px';
+                }
+                if (Math.random() < 0.05) {
+                    balloon.style.backgroundColor = '#' + Math.floor(Math.random() * 16777215).toString(16);
+                }
+            }
+            requestAnimationFrame(update);
+        }
+
+        update();
+    </script>
+</body>
+
+</html>
