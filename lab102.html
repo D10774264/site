@@ -1,42 +1,83 @@
-import turtle
-import random
+<!DOCTYPE html>
+<html lang="en">
 
-COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple']
-BURST_HEIGHT = 50
-ALTITUDE_STEP = 5
-SIZE_STEP = 1
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flying Balloons Simulation</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+    </style>
+</head>
 
-class Balloon:
-def __init__(self):
-self.turtle = turtle.Turtle()
-# 确保形状名称正确（"circle" 是内置圆形）
-self.turtle.shape("circle") # 关键修正点！
-self.turtle.color(random.choice(COLORS))
-self.turtle.penup()
-self.height = 0
-self.size = 10
+<body>
+    <canvas id="canvas" width="600" height="800"></canvas>
+    <script>
+        const COLORS = ['red', 'orange', 'yellow', 'green', 'black', 'blue', 'purple'];
+        const BURST_HEIGHT = 100;
+        const ASCENT_SPEED = 2;
+        const SIZE_GROWTH_FACTOR = 0.1;
 
-def rise(self):
-self.height += ALTITUDE_STEP
-self.size += SIZE_STEP
-self.turtle.shapesize(self.size/10) # 直径随尺寸变化
-self.turtle.sety(self.height)
+        class Balloon {
+            constructor(ctx) {
+                this.ctx = ctx;
+                this.x = Math.random() * 600;
+                this.y = 0;
+                this.size = 10;
+                this.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+            }
 
-def check_burst(self):
-if self.height >= BURST_HEIGHT:
-self.turtle.hideturtle()
-return True
-return False
+            ascend() {
+                this.y += ASCENT_SPEED;
+                this.size += SIZE_GROWTH_FACTOR;
+            }
 
-balloons = [Balloon() for _ in range(5)]
-screen = turtle.Screen()
+            shouldBurst() {
+                return this.y >= BURST_HEIGHT;
+            }
 
-while balloons:
-for balloon in balloons.copy():
-balloon.rise()
-if balloon.check_burst():
-balloons.remove(balloon)
-screen.update()
-turtle.delay(100)
+            explode() {
+                this.size = 0;
+            }
 
-turtle.done()
+            draw() {
+                this.ctx.beginPath();
+                this.ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+                this.ctx.fillStyle = this.color;
+                this.ctx.fill();
+                this.ctx.closePath();
+            }
+        }
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const balloons = [];
+        for (let i = 0; i < 5; i++) {
+            balloons.push(new Balloon(ctx));
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < balloons.length; i++) {
+                const balloon = balloons[i];
+                balloon.ascend();
+                if (balloon.shouldBurst()) {
+                    balloon.explode();
+                    balloons.splice(i, 1);
+                    i--;
+                } else {
+                    balloon.draw();
+                }
+            }
+            if (balloons.length > 0) {
+                requestAnimationFrame(animate);
+            }
+        }
+
+        animate();
+    </script>
+</body>
+
+</html>
