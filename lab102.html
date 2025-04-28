@@ -1,0 +1,42 @@
+import turtle
+import random
+
+COLORS = ['red', 'orange', 'yellow', 'green', 'blue', 'purple']
+BURST_HEIGHT = 50
+ALTITUDE_STEP = 5
+SIZE_STEP = 1
+
+class Balloon:
+def __init__(self):
+self.turtle = turtle.Turtle()
+# 确保形状名称正确（"circle" 是内置圆形）
+self.turtle.shape("circle") # 关键修正点！
+self.turtle.color(random.choice(COLORS))
+self.turtle.penup()
+self.height = 0
+self.size = 10
+
+def rise(self):
+self.height += ALTITUDE_STEP
+self.size += SIZE_STEP
+self.turtle.shapesize(self.size/10) # 直径随尺寸变化
+self.turtle.sety(self.height)
+
+def check_burst(self):
+if self.height >= BURST_HEIGHT:
+self.turtle.hideturtle()
+return True
+return False
+
+balloons = [Balloon() for _ in range(5)]
+screen = turtle.Screen()
+
+while balloons:
+for balloon in balloons.copy():
+balloon.rise()
+if balloon.check_burst():
+balloons.remove(balloon)
+screen.update()
+turtle.delay(100)
+
+turtle.done()
