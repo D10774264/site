@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Solar System Simulation</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #000;
+      font-family: Arial, sans-serif;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #infoTable {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      border-collapse: collapse;
+      display: none;
+      z-index: 100;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    #infoTable th,
+    #infoTable td {
+      padding: 8px 12px;
+      border: 1px solid #444;
+      text-align: left;
+    }
+
+    #infoTable th {
+      background-color: rgba(50, 50, 150, 0.7);
+      cursor: pointer;
+      position: sticky;
+      top: 0;
+    }
+
+    #infoTable th:hover {
+      background-color: rgba(70, 70, 170, 0.7);
+    }
+
+    #infoTable tr:nth-child(even) {
+      background-color: rgba(30, 30, 30, 0.7);
+    }
+
+    #infoTable tr:hover {
+      background-color: rgba(60, 60, 60, 0.7);
+    }
+
+    .color-swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="solarSystem"></canvas>
+  <table id="infoTable">
+    <thead>
+      <tr>
+        <th onclick="sortTable(0)">Name</th>
+        <th onclick="sortTable(1)">Mass (kg)</th>
+        <th onclick="sortTable(2)">Orbit Radius (km)</th>
+        <th onclick="sortTable(3)">Diameter (km)</th>
+        <th onclick="sortTable(4)">Color</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+
+  <script>
+    const canvas = document.getElementById('solarSystem');
+    const ctx = canvas.getContext('2d');
+    const infoTable = document.getElementById('infoTable');
+    const tableBody = document.getElementById('tableBody');
+
+    // Set canvas size
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    // Scale factors for visualization
+    const distanceScale = 1e-7;  // Adjusted for better spacing
+    const sizeScale = 0.05e-3;      // Adjusted for better planet sizes
+    let centerX = canvas.width / 2;
+    let centerY = canvas.height / 2;
+
+    // Solar system objects data
+    const objects = [
+      { name: "Sun", mass: 1.989e30, radius: 0, orbitRadius: 0, diameter: 1392700, color: "#FFEE99", speed: 0, angle: 0 },
+      { name: "Mercury", mass: 3.3011e23, radius: 57.9e6, orbitRadius: 57.9e6, diameter: 4879, color: "#A9A9A9", speed: 47.87, angle: 0 },
+      { name: "Venus", mass: 4.8675e24, radius: 108.2e6, orbitRadius: 108.2e6, diameter: 12104, color: "#FFA500", speed: 35.02, angle: 0 },
+      {
+        name: "Earth", mass: 5.972e24, radius: 149.6e6, orbitRadius: 149.6e6, diameter: 12742, color: "#1E90FF", speed: 29.78, angle: 0, moons: [
+          { name: "Moon", mass: 7.342e22, radius: 0.384e6, orbitRadius: 0.384e6, diameter: 3475, color: "#D3D3D3", speed: 1.022, angle: 0 }
+        ]
+      },
+      {
+        name: "Mars", mass: 6.417e23, radius: 227.9e6, orbitRadius: 227.9e6, diameter: 6779, color: "#FF4500", speed: 24.077, angle: 0, moons: [
+          { name: "Phobos", mass: 1.0659e16, radius: 9.377e3, orbitRadius: 9.377e3, diameter: 22.2, color: "#A9A9A9", speed: 2.138, angle: 0 },
+          { name: "Deimos", mass: 1.4762e15, radius: 23.46e3, orbitRadius: 23.46e3, diameter: 12.4, color: "#696969", speed: 1.351, angle: 0 }
+        ]
+      },
+      {
+        name: "Jupiter", mass: 1.899e27, radius: 778.5e6, orbitRadius: 778.5e6, diameter: 139820, color: "#F4A460", speed: 13.07, angle: 0, moons: [
+          { name: "Io", mass: 8.9319e22, radius: 421.8e3, orbitRadius: 421.8e3, diameter: 3643, color: "#DAA520", speed: 17.334, angle: 0 },
+          { name: "Europa", mass: 4.7998e22, radius: 671.1e3, orbitRadius: 671.1e3, diameter: 3122, color: "#EEE8AA", speed: 13.740, angle: 0 }
+        ]
+      },
+      {
+        name: "Saturn", mass: 5.685e26, radius: 1.434e9, orbitRadius: 1.434e9, diameter: 116460, color: "#DAA520", speed: 9.69, angle: 0, moons: [
+          { name: "Titan", mass: 1.3452e23, radius: 1.2219e6, orbitRadius: 1.2219e6, diameter: 5150, color: "#B8860B", speed: 5.57, angle: 0 }
+        ]
+      },
+      { name: "Uranus", mass: 8.682e25, radius: 2.871e9, orbitRadius: 2.871e9, diameter: 50724, color: "#ADD8E6", speed: 6.81, angle: 0 },
+      { name: "Neptune", mass: 1.024e26, radius: 4.495e9, orbitRadius: 4.495e9, diameter: 49244, color: "#0000FF", speed: 5.43, angle: 0 },
+      { name: "Pluto", mass: 1.303e22, radius: 5.906e9, orbitRadius: 5.906e9, diameter: 2376, color: "#A9A9A9", speed: 4.74, angle: 0 }
+    ];
+
+    // Animation variables
+    let time = 0;
+    let animationId;
+    let allObjects = [];
+
+    // Initialize all objects including moons
+    function initObjects() {
+      allObjects = [];
+      objects.forEach(obj => {
+        allObjects.push(obj);
+        if (obj.moons) {
+          obj.moons.forEach(moon => {
+            allObjects.push(moon);
+          });
+        }
+      });
+      updateTable();
+    }
+
+    // Update the info table with current object data
+    function updateTable() {
+      tableBody.innerHTML = '';
+      allObjects.forEach(obj => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+                    <td>${obj.name}</td>
+                    <td>${obj.mass.toExponential(2)}</td>
+                    <td>${Math.round(obj.orbitRadius / 1000).toLocaleString()}</td>
+                    <td>${obj.diameter.toLocaleString()}</td>
+                    <td><span class="color-swatch" style="background-color:${obj.color}"></span>${obj.color}</td>
+                `;
+        tableBody.appendChild(row);
+      });
+    }
+
+    // Sort table by column
+    function sortTable(column) {
+      const rows = Array.from(tableBody.querySelectorAll('tr'));
+      const isNumeric = column === 1 || column === 2 || column === 3;
+
+      rows.sort((a, b) => {
+        const aText = a.cells[column].textContent;
+        const bText = b.cells[column].textContent;
+
+        if (isNumeric) {
+          const aNum = column === 1 ? parseFloat(aText) : parseInt(aText.replace(/,/g, ''));
+          const bNum = column === 1 ? parseFloat(bText) : parseInt(bText.replace(/,/g, ''));
+          return aNum - bNum;
+        } else {
+          return aText.localeCompare(bText);
+        }
+      });
+
+      // Reverse if already sorted
+      if (tableBody.firstChild && tableBody.firstChild.isEqualNode(rows[0])) {
+        rows.reverse();
+      }
+
+      // Rebuild table
+      tableBody.innerHTML = '';
+      rows.forEach(row => tableBody.appendChild(row));
+    }
+
+    // Draw the solar system
+    function draw() {
+      // Ensure canvas size is correct
+      if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        centerX = canvas.width / 2;
+        centerY = canvas.height / 2;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw orbits
+      objects.forEach(obj => {
+        if (obj.radius > 0) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+          ctx.arc(centerX, centerY, obj.radius * distanceScale, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      });
+
+      // Draw objects
+      objects.forEach(obj => {
+        // Update position
+        obj.angle += obj.speed * 0.001;
+        const x = centerX + Math.cos(obj.angle) * obj.radius * distanceScale;
+        const y = centerY + Math.sin(obj.angle) * obj.radius * distanceScale;
+
+        // Draw planet
+        ctx.beginPath();
+        ctx.fillStyle = obj.color;
+        ctx.arc(x, y, obj.diameter * sizeScale * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw moons if any
+        if (obj.moons) {
+          obj.moons.forEach(moon => {
+            moon.angle += moon.speed * 0.01;
+            const moonX = x + Math.cos(moon.angle) * moon.radius * distanceScale;
+            const moonY = y + Math.sin(moon.angle) * moon.radius * distanceScale;
+
+            ctx.beginPath();
+            ctx.fillStyle = moon.color;
+            ctx.arc(moonX, moonY, moon.diameter * sizeScale * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+      });
+
+      // Draw sun (special case as it's at center)
+      const sun = objects[0];
+      ctx.beginPath();
+      ctx.fillStyle = sun.color;
+      ctx.arc(centerX, centerY, sun.diameter * sizeScale * 0.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      time += 0.01;
+      animationId = requestAnimationFrame(draw);
+    }
+
+    // Handle click to show/hide table
+    canvas.addEventListener('click', () => {
+      if (infoTable.style.display === 'none' || !infoTable.style.display) {
+        infoTable.style.display = 'block';
+      } else {
+        infoTable.style.display = 'none';
+      }
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      centerX = canvas.width / 2;
+      centerY = canvas.height / 2;
+    });
+
+    // Initialize and start animation
+    initObjects();
+    draw();
+  </script>
+</body>
+
+</html>
